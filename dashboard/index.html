@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Token Launch Radar</title>
+<link rel="stylesheet" href="app.css">
+<script src="data.js"></script>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1>Token Launch Radar</h1>
+    <p class="sub">Pre-token protocols, ranked by what a launch would be worth today. Implied value = launch value &times; token odds. Say &ldquo;records no token&rdquo;, never &ldquo;has none&rdquo;.</p>
+  </div>
+  <div class="meta" id="meta"></div>
+</header>
+
+<section class="kpis" id="kpis" aria-label="Key statistics"></section>
+
+<p class="model" id="model"></p>
+
+<div class="checks" id="checks"></div>
+
+<section class="panel">
+  <h2>Protocol accounting <span class="dim" id="ledgerTitle"></span></h2>
+  <div class="bar" id="ledgerBar"></div>
+  <div class="legend" id="ledgerLegend"></div>
+</section>
+
+<section class="panel" id="boardPanel">
+  <h2>Ranked board <span class="dim" id="boardCount"></span></h2>
+  <div class="controls">
+    <div class="tabs" id="tabs" role="tablist"></div>
+    <select id="groupSel" aria-label="Group filter"></select>
+    <select id="catSel" aria-label="Category filter"></select>
+    <select id="chainSel" aria-label="Chain filter"></select>
+    <input id="q" type="search" placeholder="Search name or slug" aria-label="Search">
+    <button id="resetBtn" type="button">Reset</button>
+    <button id="csvBtn" type="button">CSV</button>
+    <button id="jsonBtn" type="button">JSON</button>
+  </div>
+  <p class="countline" id="countLine"></p>
+  <div class="tscroll">
+  <table id="board">
+    <thead><tr id="boardHead"></tr></thead>
+    <tbody id="boardBody"></tbody>
+  </table>
+  </div>
+  <p class="hint">Click a row for its costed farm plan. Off-list rows are shown for coverage only and are never counted as worth farming.</p>
+</section>
+
+<section class="panel">
+  <h2>Out-of-sample evidence <span class="dim">a term is kept only if it lowers the held-out miss in both tests</span></h2>
+  <div class="evgrid">
+    <div>
+      <h3>Value if a token launches &mdash; median abs log error</h3>
+      <table class="mini" id="keepDrop"></table>
+      <p class="note" id="valueNote"></p>
+    </div>
+    <div>
+      <h3>Token odds &mdash; Brier score</h3>
+      <table class="mini" id="oddsTable"></table>
+      <h3>Is the printed range honest?</h3>
+      <table class="mini" id="calTable"></table>
+    </div>
+    <div>
+      <h3>How wide the bands are</h3>
+      <div id="bandChart"></div>
+      <p class="note" id="bandNote"></p>
+      <h3>Farm economics <span class="dim">(assumptions, not fitted)</span></h3>
+      <p class="note" id="farmNote"></p>
+    </div>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Live-token protocols, at market value <span class="dim" id="liveTitle"></span></h2>
+  <p class="note">Separate from the ranked board: these already record a token, so they are never ranked as launch candidates. Shown at market value only.</p>
+  <div class="tscroll">
+  <table class="mini live" id="liveTable">
+    <thead><tr><th>#</th><th>Protocol</th><th>Category</th><th>Symbol</th><th>TVL</th><th>Market cap</th><th>Cap / TVL</th></tr></thead>
+    <tbody id="liveBody"></tbody>
+  </table>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Honest caveats</h2>
+  <ul class="caveats" id="caveats"></ul>
+</section>
+
+<footer id="foot"></footer>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
