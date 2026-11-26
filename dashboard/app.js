@@ -31,7 +31,7 @@ function render(){
     ["Range honesty",""+(V.loo.range_coverage_p25_p75*100).toFixed(0)+"% &middot; "+(V.loo.range_coverage_p10_p90*100).toFixed(1)+"%","of real caps inside P25&ndash;P75 / P10&ndash;P90, leave-one-out. Walk-forward: "+(V.walk_forward.range_coverage_p25_p75*100).toFixed(0)+"% / "+(V.walk_forward.range_coverage_p10_p90*100).toFixed(1)+"%"],
     ["Token odds, Brier",V.token_odds.cv_brier_5fold.toFixed(3)+" <small>vs "+V.token_odds.base_rate_brier.toFixed(3)+" base rate</small>","5-fold CV, base rate "+Mo.token_odds_model.base_rate+". Log loss "+V.token_odds.cv_log_loss+" vs "+V.token_odds.base_log_loss+" base."],
     ["Terms survived",kept+" of "+Mo.keep_drop.length,"added terms kept in the value model. Size curve only &mdash; every added term made a held-out test worse."],
-    ["Worth farming",K.worth_farming+" of "+K.farmable_rows,"FARM "+K.verdict_counts.FARM+" &middot; MARGINAL "+K.verdict_counts.MARGINAL+" &middot; SKIP "+K.verdict_counts.SKIP+" &middot; OFF-LIST "+K.verdict_counts["OFF-LIST"]],
+    ["Worth farming",K.worth_farming+" of "+K.farmable_rows,"FARM "+K.verdict_counts.FARM+" &middot; MARGINAL "+K.verdict_counts.MARGINAL+" &middot; SKIP "+K.verdict_counts.SKIP],
     ["Watchlist ranked",K.watchlist_covered+" / "+M.watchlist_size,"plus "+(K.rows-K.watchlist_covered)+" pre-token protocols off the list, "+K.rows+" rows in all"]
   ];
   $("kpis").innerHTML=kpis.map(function(k){return '<div class="kpi"><div class="l">'+k[0]+'</div><div class="v">'+k[1]+'</div><div class="s">'+k[2]+'</div></div>';}).join("");
@@ -49,7 +49,7 @@ function render(){
   ];
   $("checks").innerHTML=checks.map(function(c){return '<span class="'+(c[1]?"":"bad")+'">'+(c[1]?"\u2713 ":"\u2717 ")+c[0]+"</span>";}).join("");
   // ledger
-  var groups=[["ranked_watchlist","Ranked \u00b7 watchlist","#43b581"],["ranked_early","Ranked \u00b7 early, below floor","#5ea0e8"],["ranked_off_list","Ranked \u00b7 off-list","#9a7ee8"],["token_trades","Token trades, usable cap","#e3b341"],["no_usable_cap","Token recorded, no usable cap","#c98a3b"],["bridge","Bridge","#39b8a6"],["liquid_staking","Liquid staking","#7fb2ec"],["exchange","Exchange","#d96a6a"],["versioned_wrapped","Versioned / wrapped","#b08968"],["other","Other","#5a6b7d"]];
+  var groups=[["ranked_watchlist","Ranked \u00b7 watchlist","#43b581"],["ranked_early","Ranked \u00b7 early, below floor","#5ea0e8"],["excluded_off_list","Excluded \u00b7 off-list","#9a7ee8"],["token_trades","Token trades, usable cap","#e3b341"],["no_usable_cap","Token recorded, no usable cap","#c98a3b"],["bridge","Bridge","#39b8a6"],["liquid_staking","Liquid staking","#7fb2ec"],["exchange","Exchange","#d96a6a"],["versioned_wrapped","Versioned / wrapped","#b08968"],["other","Other","#5a6b7d"]];
   $("ledgerTitle").textContent="— all "+M.protocols_in_snapshot+" snapshot protocols in exactly one group";
   $("ledgerBar").innerHTML=groups.map(function(g){return '<div style="width:'+(L[g[0]]/M.protocols_in_snapshot*100).toFixed(2)+'%;background:'+g[2]+'" title="'+esc(g[1])+": "+L[g[0]]+'"></div>';}).join("");
   $("ledgerLegend").innerHTML=groups.map(function(g){return '<span><i style="background:'+g[2]+'"></i>'+esc(g[1])+"<b>"+L[g[0]]+"</b></span>";}).join("");
@@ -154,12 +154,12 @@ function renderBoard(){
   }).join("");
 }
 function initBoard(){
-  var tabs=["All","FARM","MARGINAL","SKIP","OFF-LIST"];
+  var tabs=["All","FARM","MARGINAL","SKIP"];
   $("tabs").innerHTML=tabs.map(function(t){
     var n=t==="All"?D.board.length:D.board.filter(function(r){return r.verdict===t;}).length;
     return '<button type="button" data-tab="'+t+'" class="'+(state.tab===t?"on":"")+'">'+t+" "+n+"</button>";
   }).join("");
-  var gs=[["all","All groups"],["watchlist","Watchlist"],["early","Early"],["off-list","Off-list"]];
+  var gs=[["all","All groups"],["watchlist","Watchlist"],["early","Early"]];
   $("groupSel").innerHTML=gs.map(function(g){return '<option value="'+g[0]+'">'+g[1]+"</option>";}).join("");
   var cats=[...new Set(D.board.map(function(r){return r.category;}).filter(Boolean))].sort();
   $("catSel").innerHTML='<option value="all">All categories</option>'+cats.map(function(c){return '<option value="'+esc(c)+'">'+esc(c)+"</option>";}).join("");
@@ -186,7 +186,7 @@ function initBoard(){
   $("jsonBtn").addEventListener("click",function(){download("token-radar-board.json",JSON.stringify(filtered(),null,1),"application/json");});
   // Deep links (?tab=FARM&open=usdd&group=watchlist&q=...) for screenshots and sharing.
   try{var P=new URLSearchParams(location.search);
-    if(P.get("tab")&&["All","FARM","MARGINAL","SKIP","OFF-LIST"].indexOf(P.get("tab"))>=0){state.tab=P.get("tab");
+    if(P.get("tab")&&["All","FARM","MARGINAL","SKIP"].indexOf(P.get("tab"))>=0){state.tab=P.get("tab");
       Array.prototype.forEach.call($("tabs").children,function(x){x.classList.toggle("on",x.getAttribute("data-tab")===state.tab);});}
     if(P.get("group")){state.group=P.get("group");$("groupSel").value=state.group;}
     if(P.get("cat")){state.cat=P.get("cat");$("catSel").value=state.cat;}

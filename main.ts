@@ -21,9 +21,11 @@
 //     at a $3.00 fee and 2.0 hours per protocol.
 //
 // Board membership is derived from the snapshot, never from a hand-kept list
-// of names: all 40 watchlist slugs, every eligible below-floor pre-token
-// protocol ("early"), and the 20 highest-implied pre-token protocols the
-// watchlist rule excludes ("off-list", shown for coverage, verdict OFF-LIST).
+// of names: all 40 watchlist slugs and every eligible below-floor pre-token
+// protocol ("early"). The 20 highest-implied pre-token protocols the
+// watchlist rule excludes are NOT ranked: their token already trades (bridge,
+// liquid-staking, exchange, versioned-wrapped), so they are listed separately
+// in data.js as excluded_off_list and in the dashboard's audit section.
 // Saying a protocol "records no token" means the snapshot records none —
 // never a claim that it has none.
 //
@@ -51,7 +53,10 @@ const VALUE_INTERCEPT = 6.96456651;
 const VALUE_SLOPE = 0.52226555;
 /** Residual SD of the value fit, in log space (R^2 = 0.194, n = 128 peers). */
 const VALUE_RESIDUAL_SD = 2.093;
-/** Band multipliers on the point prediction, from leave-one-out residuals. */
+/** Band multipliers on the point prediction, from leave-one-out residuals
+ * (all 128 usable-cap peers). Walk-forward coverage below is measured with
+ * these same LOO bands on the walk-forward test residuals (27/48 inside
+ * P25–P75, 37/48 inside P10–P90). */
 const BAND = { p25: 0.306, p75: 4.197, p10: 0.062, p90: 8.629 };
 
 /** Token-odds logistic model: standardisation of the two z-scored inputs
@@ -93,8 +98,8 @@ const FARM_PER_HOUR_MIN = 12.5;
 const MARGINAL_NET_MIN = 5.0;
 const MARGINAL_PER_HOUR_MIN = 2.5;
 
-/** How many off-list rows the board shows, by implied value. */
-const OFF_LIST_SHOWN = 20;
+/** How many excluded off-list rows the audit section lists, by implied value. */
+const EXCLUDED_SHOWN = 20;
 
 /** Watchlist-rule patterns, restated from the snapshot's field guide. */
 const VERSION_RE = /\s(V\d+(\.\d+)?|v\d+(\.\d+)?|\d+\.\d+)$/;
@@ -401,10 +406,11 @@ for (const p of preToken) {
 const offScored = offPool
   .map((p) => ({ row: scoreProtocol(p, 'off-list', offListReason(p), false), p }))
   .sort((a, b) => b.row.implied_usd - a.row.implied_usd || bySlug(a.row.slug, b.row.slug));
-const offRows = offScored.slice(0, OFF_LIST_SHOWN).map((o) => o.row);
-const offBoardSlugs = new Set(offRows.map((r) => r.slug));
+/** The 20 highest-implied excluded protocols: NOT ranked, listed in the audit section. */
+const excludedRows = offScored.slice(0, EXCLUDED_SHOWN).map((o) => o.row);
+const excludedSlugs = new Set(excludedRows.map((r) => r.slug));
 
-const board = [...watchRows, ...earlyRows, ...offRows].sort(
+const board = [...watchRows, ...earlyRows].sort(
   (a, b) => b.implied_usd - a.implied_usd || bySlug(a.slug, b.slug),
 );
 board.forEach((row, i) => {
@@ -416,7 +422,7 @@ board.forEach((row, i) => {
 
 /** Every protocol in exactly one ledger group (sums to the snapshot size). */
 function ledgerCounts(): Record<string, number> {
-  const remainder = offPool.filter((p) => !offBoardSlugs.has(p.slug));
+  const remainder = offPool.filter((p) => !excludedSlugs.has(p.slug));
   const groups: Record<string, number> = { bridge: 0, 'liquid-staking': 0, exchange: 0, 'versioned-wrapped': 0, other: 0 };
   for (const p of remainder) groups[offListReason(p)] = (groups[offListReason(p)] ?? 0) + 1;
   const tokenTrades = snapshot.protocols.filter((p) => p.mcap_usd !== null && p.mcap_usd > 0).length;
@@ -424,7 +430,7 @@ function ledgerCounts(): Record<string, number> {
   return {
     ranked_watchlist: watchRows.length,
     ranked_early: earlyRows.length,
-    ranked_off_list: offRows.length,
+    excluded_off_list: excludedRows.length,
     token_trades: tokenTrades,
     no_usable_cap: noUsableCap,
     bridge: groups['bridge'] ?? 0,
@@ -465,7 +471,10 @@ const radarData = {
   meta: {
     title: 'Token Launch Radar',
     as_of: asOf,
-    source: snapshot.source,
+    // The snapshot's source string carries its fetch URL; strip it so no
+    // output file contains an http(s) string (the dashboard shows only the
+    // first word of this field, and the dossier never includes data.js).
+    source: snapshot.source.replace(/\s*https?:\/\/\S+/, ''),
     floor_usd: floorUsd,
     protocols_in_snapshot: snapshot.protocols.length,
     watchlist_size: snapshot.watchlist.length,
@@ -533,7 +542,7 @@ const radarData = {
     ],
     validation: {
       loo: { n: 128, median_abs_log_error: 1.223, multiplicative_miss_median_x: 3.4, flat_baseline_median_abs_log_error: 1.591, flat_baseline_multiplicative_miss_median_x: 4.91, range_coverage_p25_p75: 0.5, range_coverage_p10_p90: 0.797 },
-      walk_forward: { split_date: '2024-02-18', train_n: 47, test_n: 48, median_abs_log_error: 1.102, multiplicative_miss_median_x: 3.01, flat_baseline_median_abs_log_error: 1.421, flat_baseline_multiplicative_miss_median_x: 4.14, range_coverage_p25_p75: 0.5, range_coverage_p10_p90: 0.667 },
+      walk_forward: { split_date: '2024-02-18', train_n: 47, test_n: 48, median_abs_log_error: 1.102, multiplicative_miss_median_x: 3.01, flat_baseline_median_abs_log_error: 1.421, flat_baseline_multiplicative_miss_median_x: 4.14, range_coverage_p25_p75: 0.5625, range_coverage_p10_p90: 0.7708 },
       token_odds: { cv_brier_5fold: 0.21, base_rate_brier: 0.249, cv_log_loss: 0.6178, base_log_loss: 0.6918 },
     },
     farm_economics: {
@@ -557,13 +566,25 @@ const radarData = {
       'Odds are miscalibrated at the bottom: the lowest CV decile predicts 0.059 mean odds vs 0.214 observed.',
       'change_7d was dropped from both models (one +4448.5% outlier dominates its scale in the odds model; it hurt LOO in the value model).',
       'Implied values are conditional medians, not means; the lognormal mean would be ~8.9x the median.',
-      'Walk-forward P10-P90 bands under-cover at 66.7% (LOO 79.7%): the wide bands are still too narrow out of time.',
-      'Off-list rows are mechanical extrapolations, not launch candidates; their odds (up to 0.888) are overstated by a model with no wrapped/exchange feature.',
+      'Walk-forward bands cover 56.2% (P25-P75) and 77.1% (P10-P90) against stated 50% / 80%, measured with the same LOO bands the board uses: the P10-P90 band still under-covers slightly out of time.',
+      'The 20 excluded off-list protocols are mechanical extrapolations, not launch candidates; their odds (up to 0.888) are overstated by a model with no wrapped/exchange feature. They are listed, not ranked, in the audit section.',
       'Farm economics are assumptions stated above and cannot be validated from the snapshot; treat net $ as a ranking aid, not a promise.',
       '"Records no token" means the snapshot records none — never a claim that a protocol has none.',
     ],
   },
   board,
+  /** The 20 highest-implied pre-token protocols the watchlist rule excludes: not ranked, not farmable. */
+  excluded_off_list: excludedRows.map((r) => ({
+    slug: r.slug,
+    name: r.name,
+    category: r.category,
+    tvl_usd: r.tvl_usd,
+    off_list_reason: r.off_list_reason,
+    odds: r.odds,
+    if_launches_usd: r.if_launches_usd,
+    implied_usd: r.implied_usd,
+    implied_value_usd: r.implied_value_usd,
+  })),
   live_top_24: liveTop24,
 };
 
@@ -641,8 +662,8 @@ else {
 }
 
 process.stdout.write(
-  `token-launch-radar: ${snapshot.protocols.length} protocols, watchlist ${snapshot.watchlist.length}, board ${board.length} rows (watchlist ${watchRows.length}, early ${earlyRows.length}, off-list ${offRows.length})\n` +
-    `token-launch-radar: worth farming ${worthFarming}/${farmableRows.length} (FARM ${verdictCounts['FARM']}, MARGINAL ${verdictCounts['MARGINAL']}, SKIP ${verdictCounts['SKIP']}, OFF-LIST ${verdictCounts['OFF-LIST']}); total implied ${money(totalImplied)}, farmable ${money(totalImpliedFarmable)}\n` +
+  `token-launch-radar: ${snapshot.protocols.length} protocols, watchlist ${snapshot.watchlist.length}, board ${board.length} rows (watchlist ${watchRows.length}, early ${earlyRows.length}), excluded off-list ${excludedRows.length}\n` +
+    `token-launch-radar: worth farming ${worthFarming}/${farmableRows.length} (FARM ${verdictCounts['FARM']}, MARGINAL ${verdictCounts['MARGINAL']}, SKIP ${verdictCounts['SKIP']}); total implied ${money(totalImplied)}, farmable ${money(totalImpliedFarmable)}\n` +
     `token-launch-radar: sorted non-rising: yes; farm-step violations: 0; dashboard files copied: ${dashFiles.length}; screenshots copied: ${shotFiles.length}\n` +
     `token-launch-radar: wrote ${join(outDir, 'board.json')}, ${join(outDir, 'data.js')}${existsSync(join(outDir, 'dossier.json')) ? `, ${join(outDir, 'dossier.json')}` : ' (no dossier: dashboard/screenshots absent)'}\n`,
 );

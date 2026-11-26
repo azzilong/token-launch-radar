@@ -74,6 +74,8 @@ td.name .sub2{display:block;font-weight:400;color:var(--mut);font-size:11px}
 .evgrid{display:grid;grid-template-columns:1.15fr 1fr 1fr;gap:0 22px}
 .note{color:var(--mut);font-size:11px;margin:6px 0}
 .note b{color:var(--txt)}
+.scatter{max-width:680px}
+.scatter svg{display:block}
 .live td,.live th{white-space:nowrap}
 .caveats{margin:0;padding-left:18px;color:var(--mut)}
 .caveats li{margin-bottom:5px}
